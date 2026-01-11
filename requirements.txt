@@ -1,0 +1,5 @@
+certifi==2026.1.4
+dnspython==2.8.0
+gunicorn==23.0.0
+packaging==25.0
+pymongo==4.16.0
