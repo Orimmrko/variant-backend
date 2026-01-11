@@ -2,21 +2,39 @@ import os
 import hashlib
 import certifi
 from datetime import datetime
+from pathlib import Path  # <--- NEW: To find files reliably
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
-from bson import ObjectId
 
+# --- BULLETPROOF .ENV LOADER ---
+# 1. Get the folder where THIS python file is located
+base_dir = Path(__file__).resolve().parent
 
-load_dotenv()
+# 2. Force Python to look for .env right there
+env_path = base_dir / '.env'
+load_dotenv(dotenv_path=env_path)
+# -------------------------------
 
 app = Flask(__name__)
 
-MONGO_URI = "mongodb+srv://markoori6_db_user:mn03czMdLuKW82Gg@varient.pcqngem.mongodb.net/variant_db?appName=varient"
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(),tlsAllowInvalidCertificates=True)
+# --- CONFIGURATION ---
+MONGO_URI = os.environ.get("MONGO_URI")
+
+# DEBUG: Print exactly what we found so you know if it's working
+print(f"DEBUG: Looking for .env at: {env_path}")
+print(f"DEBUG: Found MONGO_URI: {MONGO_URI}")
+
+if not MONGO_URI:
+    raise ValueError("CRITICAL ERROR: No MONGO_URI found! Please check your .env file.")
+
+# Connect to MongoDB
+# We use certifi to fix SSL certificate errors on Windows
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), tlsAllowInvalidCertificates=True)
 db = client['variant_db']
 
+# --- HELPER FUNCTIONS ---
 
 def get_bucket(user_id, experiment_id):
     """
@@ -42,7 +60,7 @@ def select_variant(experiment, bucket):
     # Fallback to the last variant if something goes wrong with math (rounding)
     return experiment['variants'][-1]
 
-
+# --- API ENDPOINTS ---
 
 @app.route('/api/experiments', methods=['POST'])
 def create_experiment():
@@ -154,8 +172,7 @@ def get_experiment_summary(experiment_key):
         "sample_events": [{k: str(v) if isinstance(v, ObjectId) else v for k, v in e.items()} for e in raw_events],
         "aggregated_variants": results
     }), 200
+
 if __name__ == '__main__':
+    # Using 0.0.0.0 is useful if you want to test from an Emulator later
     app.run(host='0.0.0.0', port=5000, debug=True)
-
-
-
