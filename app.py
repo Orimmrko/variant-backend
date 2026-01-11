@@ -119,7 +119,10 @@ def get_config():
         })
 
     return jsonify(config_list), 200
-
+@app.route('/')
+def home():
+    return {"status": "Variant Backend is Active", "database": "Connected"}, 200
+    
 @app.route('/api/track', methods=['POST'])
 def track_event():
     data = request.json
