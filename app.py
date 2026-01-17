@@ -206,7 +206,27 @@ def delete_experiment(key):
     if result.deleted_count > 0:
         return jsonify({"message": "Deleted"}), 200
     return jsonify({"error": "Not found"}), 404
-# --- ADD THIS TO app.py ---
+
+@app.route('/api/admin/stats/<experiment_key>', methods=['DELETE'])
+def reset_experiment_stats(experiment_key):
+    """ADMIN: Clear all events for a specific experiment to restart the test"""
+    # Find the experiment ID first
+    experiment = db.experiments.find_one({"key": experiment_key})
+    if not experiment:
+        return jsonify({"error": "Experiment not found"}), 404
+        
+    exp_id_str = str(experiment['_id'])
+    
+    # Delete events matching this experiment ID
+    result = db.events.delete_many({
+        "$or": [
+            {"experiment_id": exp_id_str},
+            {"experiment_id": ObjectId(exp_id_str)},
+            {"experimentId": exp_id_str}
+        ]
+    })
+    
+    return jsonify({"message": f"Cleared {result.deleted_count} events"}), 200
 
 @app.route('/api/admin/experiments/<key>', methods=['PUT'])
 def update_experiment(key):
