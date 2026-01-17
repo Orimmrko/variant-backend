@@ -195,6 +195,7 @@ def get_experiment_summary(experiment_key):
 @app.route('/api/admin/experiments', methods=['GET'])
 def get_all_experiments():
     """ADMIN: List all experiments (Active & Paused)"""
+    Add "variants": 1
     experiments = list(db.experiments.find({}, {"_id": 0, "name": 1, "key": 1, "status": 1}))
     return jsonify(experiments), 200
 
