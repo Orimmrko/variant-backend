@@ -2,7 +2,8 @@ import os
 import hashlib
 import certifi
 from datetime import datetime
-from pathlib import Path  # <--- NEW: To find files reliably
+from pathlib import Path 
+from flask_cors import CORS
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -18,6 +19,7 @@ load_dotenv(dotenv_path=env_path)
 # -------------------------------
 
 app = Flask(__name__)
+CORS(app)
 
 # --- CONFIGURATION ---
 MONGO_URI = os.environ.get("MONGO_URI")
