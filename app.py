@@ -190,6 +190,22 @@ def get_experiment_summary(experiment_key):
         "aggregated_variants": results
     }), 200
 
+    # --- NEW ADMIN ENDPOINTS ---
+
+@app.route('/api/admin/experiments', methods=['GET'])
+def get_all_experiments():
+    """ADMIN: List all experiments (Active & Paused)"""
+    experiments = list(db.experiments.find({}, {"_id": 0, "name": 1, "key": 1, "status": 1}))
+    return jsonify(experiments), 200
+
+@app.route('/api/admin/experiments/<key>', methods=['DELETE'])
+def delete_experiment(key):
+    """ADMIN: Delete an experiment"""
+    result = db.experiments.delete_one({"key": key})
+    if result.deleted_count > 0:
+        return jsonify({"message": "Deleted"}), 200
+    return jsonify({"error": "Not found"}), 404
+
 if __name__ == '__main__':
     # Using 0.0.0.0 is useful if you want to test from an Emulator later
     app.run(host='0.0.0.0', port=5000, debug=True)
