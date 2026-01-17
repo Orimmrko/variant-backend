@@ -205,6 +205,35 @@ def delete_experiment(key):
     if result.deleted_count > 0:
         return jsonify({"message": "Deleted"}), 200
     return jsonify({"error": "Not found"}), 404
+# --- ADD THIS TO app.py ---
+
+@app.route('/api/admin/experiments/<key>', methods=['PUT'])
+def update_experiment(key):
+    """ADMIN: Update experiment status or traffic split"""
+    data = request.json
+    
+    # We only allow updating specific fields for safety
+    update_fields = {}
+    
+    if 'status' in data:
+        update_fields['status'] = data['status'] # e.g., 'active' or 'paused'
+        
+    if 'variants' in data:
+        # Validate that percentages sum to 100
+        total = sum(v.get('traffic_percentage', 0) for v in data['variants'])
+        if total != 100:
+            return jsonify({"error": "Traffic must sum to 100"}), 400
+        update_fields['variants'] = data['variants']
+
+    if not update_fields:
+        return jsonify({"error": "No valid fields to update"}), 400
+
+    result = db.experiments.update_one({"key": key}, {"$set": update_fields})
+    
+    if result.matched_count == 0:
+        return jsonify({"error": "Experiment not found"}), 404
+        
+    return jsonify({"message": "Updated successfully"}), 200
 
 if __name__ == '__main__':
     # Using 0.0.0.0 is useful if you want to test from an Emulator later
