@@ -151,30 +151,42 @@ def get_experiment_summary(experiment_key):
     
     exp_id_str = str(experiment['_id'])
 
-    # DEBUG: Let's find EVERY event for this experiment to see what's wrong
+    # DEBUG: Retrieve sample events (keep this for troubleshooting)
     raw_events = list(db.events.find({
         "$or": [
             {"experiment_id": exp_id_str},
-            {"experiment_id": ObjectId(exp_id_str)},
-            {"experimentId": exp_id_str}
+            {"experiment_id": ObjectId(exp_id_str)}
         ]
     }).limit(5))
 
-    # Perform the actual aggregation for the chart
+    # --- THE FIXED PIPELINE ---
     pipeline = [
+        # 1. Match events for this experiment
         {"$match": {"$or": [
             {"experiment_id": exp_id_str},
             {"experiment_id": ObjectId(exp_id_str)}
         ]}},
-        {"$group": {"_id": "$variant_name", "count": {"$sum": 1}}}
+        
+        # 2. Group by Variant Name, but count carefully!
+        {"$group": {
+            "_id": "$variant_name",
+            # If event_name is "exposure", add 1. Otherwise add 0.
+            "exposures": {
+                "$sum": {"$cond": [{"$eq": ["$event_name", "exposure"]}, 1, 0]}
+            },
+            # If event_name is "conversion", add 1. Otherwise add 0.
+            "conversions": {
+                "$sum": {"$cond": [{"$eq": ["$event_name", "conversion"]}, 1, 0]}
+            }
+        }}
     ]
+    
     results = list(db.events.aggregate(pipeline))
     
     return jsonify({
         "experiment_name": experiment.get('name'),
         "experiment_id_we_searched_for": exp_id_str,
         "raw_events_found_count": len(raw_events),
-        "sample_events": [{k: str(v) if isinstance(v, ObjectId) else v for k, v in e.items()} for e in raw_events],
         "aggregated_variants": results
     }), 200
 
